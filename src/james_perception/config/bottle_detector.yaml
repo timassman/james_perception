@@ -1,0 +1,37 @@
+/bottle_detector:
+  ros__parameters:
+    camera_tilt_x_deg: 18.0
+    camera_tilt_y_deg: 0.0
+    cap_0_hue: 60.0
+    cap_0_hue_tol: 18.0
+    cap_0_name: lemon_cactus
+    cap_1_hue: 20.0
+    cap_1_hue_tol: 18.0
+    cap_1_name: orange
+    cap_2_hue: 308.0
+    cap_2_hue_tol: 40.0
+    cap_2_name: cassis
+    cap_3_hue: 0.0
+    cap_3_hue_tol: 20.0
+    cap_3_name: unknown_3
+    cap_saturation_min: 80.0
+    cap_value_min: 50.0
+    crate_cols: 4
+    crate_rows: 3
+    crate_x_max: 0.15
+    crate_x_min: -0.12
+    crate_y_max: 0.3
+    crate_y_min: 0.13
+    crate_z_far: 1.0
+    crate_z_near: 0.83
+    min_points_per_slot: 200
+    num_cap_colors: 3
+    qos_overrides:
+      /parameter_events:
+        publisher:
+          depth: 1000
+          durability: volatile
+          history: keep_last
+          reliability: reliable
+    use_sim_time: false
+
