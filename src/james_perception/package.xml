@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>james_perception</name>
+  <version>0.1.0</version>
+  <description>3D object detection and segmentation for the James robot using point cloud processing</description>
+  <maintainer email="t.m.assman@gmail.com">Tim Assman</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- ROS2 -->
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>vision_msgs</depend>
+
+  <!-- Point cloud processing -->
+  <depend>pcl_conversions</depend>
+  <depend>pcl_ros</depend>
+  <depend>visualization_msgs</depend>
+
+  <!-- Testing -->
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
