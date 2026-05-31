@@ -45,6 +45,7 @@ BottleDetector::BottleDetector(const rclcpp::NodeOptions & options)
 
   // Occupancy
   declare_parameter("min_points_per_slot", 20);
+  declare_parameter("terminal_update_hz", 1.0);
 
   // Cap colour: how many bottle types (max 4)
   declare_parameter("num_cap_colors", 3);
@@ -146,7 +147,8 @@ void BottleDetector::reloadParameters()
   crate_y_max_         = get_parameter("crate_y_max").as_double();
   crate_rows_          = static_cast<int>(get_parameter("crate_rows").as_int());
   crate_cols_          = static_cast<int>(get_parameter("crate_cols").as_int());
-  min_points_per_slot_ = static_cast<int>(get_parameter("min_points_per_slot").as_int());
+  min_points_per_slot_  = static_cast<int>(get_parameter("min_points_per_slot").as_int());
+  terminal_update_hz_   = get_parameter("terminal_update_hz").as_double();
   cap_saturation_min_  = static_cast<float>(get_parameter("cap_saturation_min").as_double());
   cap_value_min_       = static_cast<float>(get_parameter("cap_value_min").as_double());
 
@@ -273,55 +275,73 @@ std_msgs::msg::ColorRGBA BottleDetector::colorForCap(const std::string & cap_nam
 // ---------------------------------------------------------------------------
 // publishMarkers — one coloured box + label per detected bottle
 // ---------------------------------------------------------------------------
-void BottleDetector::publishMarkers(const vision_msgs::msg::Detection3DArray & detections)
+void BottleDetector::publishMarkers(
+  const std::vector<std::vector<SlotGridInfo>> & grid,
+  const std_msgs::msg::Header & header)
 {
   visualization_msgs::msg::MarkerArray array;
 
-  // First marker: delete everything from the previous frame.
-  // This clears boxes for bottles that were just removed from the crate.
-  visualization_msgs::msg::Marker clear;
-  clear.action = visualization_msgs::msg::Marker::DELETEALL;
-  array.markers.push_back(clear);
+  // Publish all 12 slot markers every frame with fixed IDs.
+  // Empty slots get alpha=0 (invisible). RViz2 updates markers in-place
+  // without a delete-then-add cycle, so there is no flickering.
+  // Lifetime=0 means "persist until replaced" — no timeout needed.
 
-  int id = 0;
-  for (const auto & det : detections.detections) {
-    if (det.results.empty()) continue;
-    const auto & hyp = det.results[0];
-    const std::string & cap_name = hyp.hypothesis.class_id;
-    const auto color = colorForCap(cap_name);
+  const double slot_w = (crate_x_max_ - crate_x_min_) / crate_cols_;
+  const double slot_d = (crate_y_max_ - crate_y_min_) / crate_rows_;
+  const double box_z  = (crate_z_near_ + crate_z_far_) / 2.0;
+  const double box_sz = crate_z_far_ - crate_z_near_;
 
-    // ── Box marker ───────────────────────────────────────────────────────────
-    visualization_msgs::msg::Marker box;
-    box.header    = det.header;
-    box.ns        = "bottles";
-    box.id        = id++;
-    box.type      = visualization_msgs::msg::Marker::CUBE;
-    box.action    = visualization_msgs::msg::Marker::ADD;
-    box.pose      = det.bbox.center;
-    box.scale.x   = det.bbox.size.x;
-    box.scale.y   = det.bbox.size.y;
-    box.scale.z   = det.bbox.size.z;
-    box.color     = color;
-    // Disappears after 0.5 s if not refreshed — prevents stale markers
-    box.lifetime  = rclcpp::Duration::from_seconds(0.5);
-    array.markers.push_back(box);
+  for (int row = 0; row < crate_rows_; ++row) {
+    for (int col = 0; col < crate_cols_; ++col) {
+      const auto & slot = grid[row][col];
+      const bool filled = (slot.name != "empty");
 
-    // ── Label marker — bottle type name floating above the box ───────────────
-    visualization_msgs::msg::Marker label;
-    label.header   = det.header;
-    label.ns       = "bottle_labels";
-    label.id       = id++;
-    label.type     = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
-    label.action   = visualization_msgs::msg::Marker::ADD;
-    label.pose     = det.bbox.center;
-    // Move slightly towards camera (smaller Z) so the text appears above the box
-    label.pose.position.z -= det.bbox.size.z * 0.5 + 0.02;
-    label.scale.z  = 0.03;   // text height: 3 cm
-    label.text     = cap_name;
-    label.color.r  = 1.0f; label.color.g = 1.0f;
-    label.color.b  = 1.0f; label.color.a = 1.0f;   // white text
-    label.lifetime = rclcpp::Duration::from_seconds(0.5);
-    array.markers.push_back(label);
+      const double cx = crate_x_min_ + (col + 0.5) * slot_w;
+      const double cy = crate_y_min_ + (row + 0.5) * slot_d;
+      const int slot_id = row * crate_cols_ + col;
+
+      // ── Box ────────────────────────────────────────────────────────────────
+      visualization_msgs::msg::Marker box;
+      box.header   = header;
+      box.ns       = "bottles";
+      box.id       = slot_id;
+      box.lifetime = rclcpp::Duration(0, 0);
+      box.action   = filled ? visualization_msgs::msg::Marker::ADD
+                            : visualization_msgs::msg::Marker::DELETE;
+      if (filled) {
+        box.type   = visualization_msgs::msg::Marker::CUBE;
+        box.pose.position.x    = cx;
+        box.pose.position.y    = cy;
+        box.pose.position.z    = box_z;
+        box.pose.orientation.w = 1.0;
+        box.scale.x = slot_w;
+        box.scale.y = slot_d;
+        box.scale.z = box_sz;
+        box.color   = colorForCap(slot.name);
+      }
+      array.markers.push_back(box);
+
+      // ── Label ───────────────────────────────────────────────────────────────
+      visualization_msgs::msg::Marker label;
+      label.header   = header;
+      label.ns       = "bottle_labels";
+      label.id       = 100 + slot_id;
+      label.lifetime = rclcpp::Duration(0, 0);
+      label.action   = filled ? visualization_msgs::msg::Marker::ADD
+                              : visualization_msgs::msg::Marker::DELETE;
+      if (filled) {
+        label.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
+        label.pose.position.x    = cx;
+        label.pose.position.y    = cy;
+        label.pose.position.z    = box_z - box_sz * 0.5 - 0.02;
+        label.pose.orientation.w = 1.0;
+        label.scale.z  = 0.03;
+        label.text     = slot.name;
+        label.color.r  = label.color.g = label.color.b = 1.0f;
+        label.color.a  = 1.0f;
+      }
+      array.markers.push_back(label);
+    }
   }
 
   markers_pub_->publish(array);
@@ -574,14 +594,17 @@ vision_msgs::msg::Detection3DArray BottleDetector::detect(
     }
   }
 
-  // Log ASCII grid ~1 Hz (every 15 frames at typical camera rate)
-  static int frame_n = 0;
-  if (++frame_n >= 15) {
+  // Log ASCII grid at configured rate (default 1 Hz)
+  const double min_interval = terminal_update_hz_ > 0.0
+    ? 1.0 / terminal_update_hz_ : 1.0;
+  static rclcpp::Time last_grid_log(0, 0, RCL_ROS_TIME);
+  auto now = get_clock()->now();
+  if ((now - last_grid_log).seconds() >= min_interval) {
     logCrateGrid(grid, result.detections.size());
-    frame_n = 0;
+    last_grid_log = now;
   }
 
-  publishMarkers(result);
+  publishMarkers(grid, header);
   return result;
 }
 

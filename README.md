@@ -40,7 +40,7 @@ Three bottle types are pre-configured:
 
 | Bottle | Cap colour | Default hue |
 |--------|-----------|-------------|
-| Lemon Cactus | Yellow | 60° |
+| Lemon | Yellow | 60° |
 | Orange | Orange | 20° |
 | Cassis Blackberry | Purple | 308° |
 
@@ -53,7 +53,7 @@ The node prints a live ASCII grid (~1 Hz) showing the state of all 12 slots:
 ```
 === crate  8 / 12 filled ===
 +------------------+------------------+------------------+------------------+
-|[0,0] lemon_cactu |[0,1] empty       |[0,2] cassis      |[0,3] lemon_cactu |
+|[0,0] lemon       |[0,1] empty       |[0,2] cassis      |[0,3] lemon       |
 |  316pt  hue: 49  |   14pt  hue:---  |  478pt  hue:306  |  296pt  hue: 63  |
 | occ:[#####] 100% | occ:[#....]  14% | occ:[#####] 100% | occ:[#####] 100% |
 | col:[##...]  40% | col: ---         | col:[####.]  80% | col:[####.]  81% |
