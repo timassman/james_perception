@@ -62,7 +62,10 @@ private:
   // Called once on startup; call again after changing crate geometry parameters.
   void logSlotMap();
 
-  void publishMarkers(const vision_msgs::msg::Detection3DArray & detections);
+  // Publishes one box + label per slot (all 12). Empty slots get alpha=0.
+  // Fixed marker IDs mean RViz2 updates in-place without flickering.
+  void publishMarkers(const std::vector<std::vector<SlotGridInfo>> & grid,
+                      const std_msgs::msg::Header & header);
 
   // Print a 3×4 ASCII grid of all slots to the console (throttled to ~1 Hz).
   // On subsequent calls the grid is overwritten in-place using ANSI escape codes.
@@ -103,7 +106,8 @@ private:
   int crate_cols_;
 
   // ── Occupancy ────────────────────────────────────────────────────────────────
-  int min_points_per_slot_;
+  int    min_points_per_slot_;
+  double terminal_update_hz_;
 
   // ── Cap colour classification ─────────────────────────────────────────────
   std::vector<CapColor> cap_colors_;
