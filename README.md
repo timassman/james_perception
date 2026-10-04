@@ -65,7 +65,6 @@ The node prints a live ASCII grid (~1 Hz) showing the state of all 12 slots:
 ```
 james_perception/
 ├── check_dds.sh                        ← DDS diagnostics (see below)
-├── sync_james_perception.sh            ← rsync from laptop to Jetson
 ├── docs/images/                        ← screenshots and diagrams
 ├── features/
 │   └── bottle_detection.feature        ← Cucumber BDD scenarios
@@ -90,13 +89,15 @@ james_perception/
 
 ## Development workflow
 
-During development, the package is **not** baked into the Docker image. Instead, the source is mounted as a volume (`/home/james/git/james_perception`) and built manually inside the container. This allows fast iteration without rebuilding the image (which takes hours).
+During development, the package is **not** baked into the Docker image. Edit on the laptop,
+sync to the Jetson and build inside the container. How the sync and the `~/git` mount work
+is described in Scenario H of the [james_docker](https://github.com/timassman/james_docker) README.
 
 ```bash
 # 1. Edit code on laptop
 
-# 2. Sync to Jetson without committing (from repo root on laptop)
-./sync_james_perception.sh
+# 2. Sync to Jetson without committing (on the laptop, from james_docker)
+./sync_to_jetson.sh james_perception
 
 # 3. Build inside the Docker container on the Jetson
 docker exec -it robojames bash
@@ -109,8 +110,6 @@ ros2 launch james_perception bottle_detector.launch.py
 
 # 5. Commit only after it works on real hardware
 ```
-
-`--symlink-install` means config and launch file changes take effect immediately — only C++ changes require a rebuild.
 
 ## Parameter tuning
 
