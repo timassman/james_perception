@@ -68,8 +68,5 @@ vcpkg_installed/
 Testing/
 .cache/
 
-# Large recorded point cloud test data (record locally — see test/test_data/README.md)
-test/test_data/*.pcd
-
 # VS Code settings (contain machine-specific paths)
 .vscode/

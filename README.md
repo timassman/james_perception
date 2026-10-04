@@ -66,13 +66,6 @@ The node prints a live ASCII grid (~1 Hz) showing the state of all 12 slots:
 james_perception/
 ├── check_dds.sh                        ← DDS diagnostics (see below)
 ├── docs/images/                        ← screenshots and diagrams
-├── features/
-│   └── bottle_detection.feature        ← Cucumber BDD scenarios
-├── test/
-│   ├── step_definitions/
-│   │   └── bottle_detection_steps.cpp
-│   └── test_data/
-│       └── README.md                   ← how to record .pcd test files
 └── src/james_perception/               ← ROS2 package root (colcon workspace)
     ├── CMakeLists.txt
     ├── package.xml
